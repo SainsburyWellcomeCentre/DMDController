@@ -1,0 +1,91 @@
+%BASIC_DISPLAY  Connect to DLP V-7002, display a test pattern, then disconnect.
+%
+% Prerequisites:
+%   1. Run setup.m once to compile the thunk DLL.
+%   2. Add DMDController to MATLAB path:
+%        addpath('C:\Users\harrislab\Documents\MATLAB\DMDController')
+%   3. V-7002 device must be connected via USB and powered on.
+%
+% Run from MATLAB Command Window or as a script.
+
+fprintf('=== DMDController Basic Display Test ===\n\n');
+
+%% Add path (if not already added)
+dmdRoot = fileparts(mfilename('fullpath'));
+dmdRoot = fileparts(dmdRoot);  % go up from examples/ to DMDController/
+if ~contains(path, dmdRoot)
+    addpath(dmdRoot);
+end
+
+%% Connect
+fprintf('Connecting to DMD...\n');
+dmd = DMDController.DMD();
+dmd.connect(0);  % device 0
+
+%% Print device info
+info = dmd.getInfo();
+fprintf('  Device serial number : %d\n', info.serialNumber);
+fprintf('  Firmware version     : %d\n', info.version);
+fprintf('  DMD resolution       : %d x %d\n', info.width, info.height);
+fprintf('  Available SDRAM      : %d binary frames\n', info.availMemory);
+
+%% Check temperatures
+temps = dmd.getTemperatures();
+fprintf('  DDC FPGA temperature : %.1f C\n', temps.ddc_fpga);
+fprintf('  APPS FPGA temperature: %.1f C\n', temps.apps_fpga);
+fprintf('  PCB temperature      : %.1f C\n\n', temps.pcb);
+
+W = double(info.width);   % 2560
+H = double(info.height);  % 1600
+
+%% Test 1: All-white
+fprintf('Test 1: All-white frame (2 seconds)...\n');
+dmd.on();
+pause(2);
+
+%% Test 2: All-black
+fprintf('Test 2: All-black frame (2 seconds)...\n');
+dmd.off();
+pause(2);
+
+%% Test 3: Checkerboard pattern
+fprintf('Test 3: Checkerboard pattern (3 seconds)...\n');
+blockSize = 64;
+[xx, yy] = meshgrid(1:W, 1:H);
+checker = uint8(mod(floor((xx-1)/blockSize) + floor((yy-1)/blockSize), 2)) * 255;
+dmd.displayFrame(checker);
+pause(3);
+
+%% Test 4: Horizontal gradient
+fprintf('Test 4: Horizontal gradient (3 seconds)...\n');
+gradient_img = uint8(repmat(linspace(0, 255, W), H, 1));
+dmd.displayFrame(gradient_img);
+pause(3);
+
+%% Test 5: Concentric rings
+fprintf('Test 5: Concentric rings (3 seconds)...\n');
+cx = W/2; cy = H/2;
+[xx, yy] = meshgrid(1:W, 1:H);
+r = sqrt((xx-cx).^2 + (yy-cy).^2);
+rings = uint8(mod(floor(r / 50), 2) * 255);
+dmd.displayFrame(rings);
+pause(3);
+
+%% Test 6: Multi-frame sequence (sine wave scrolling) at 30 fps
+fprintf('Test 6: Scrolling sine wave sequence (30 fps, 2 seconds)...\n');
+nFrames = 30;
+imgStack = zeros(H, W, nFrames, 'uint8');
+for f = 1:nFrames
+    phase = 2*pi*(f-1)/nFrames;
+    row_profile = uint8(128 + 127 * sin(2*pi*(1:W)/200 + phase));
+    imgStack(:,:,f) = repmat(row_profile, H, 1);
+end
+dmd.displaySequence(imgStack, 30, 0);  % 0 = infinite loop
+pause(2);
+
+%% Halt and disconnect
+fprintf('\nTest complete. Halting and disconnecting...\n');
+dmd.halt();
+pause(0.5);
+dmd.disconnect();
+fprintf('Done.\n');
