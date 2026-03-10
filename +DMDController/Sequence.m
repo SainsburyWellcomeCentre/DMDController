@@ -122,8 +122,8 @@ classdef Sequence < handle
 
             % Reshape to [height x width x picLoad] and make contiguous column-major
             if ndims(imageData) == 2
-                % single frame — already [height x width]
-                data = imageData;
+                % single frame — ensure it is [height x width x 1]
+                data = reshape(imageData, size(imageData, 1), size(imageData, 2), 1);
             else
                 data = imageData(:,:,1:picLoad);
             end
@@ -134,17 +134,10 @@ classdef Sequence < handle
             % ALP API expects data in row-major (C) order: rows top-to-bottom,
             % columns left-to-right. MATLAB stores column-major, so we
             % transpose each frame so that MATLAB's memory layout == C row-major.
-            % For multi-frame: permute so memory is [width x height x frames]
-            % which in MATLAB column-major = rows of each frame are contiguous.
-            if picLoad == 1
-                % Transpose to make [width x height] in MATLAB = row-major in C
-                dataOut = data';
-            else
-                % data is [height x width x picLoad]
-                % We need memory layout: frame1_row0..rowN, frame2_row0..rowN ...
-                % In MATLAB column-major: [width x height x picLoad] gives this
-                dataOut = permute(data, [2 1 3]);
-            end
+            % We need memory layout: frame1_row0..rowN, frame2_row0..rowN ...
+            % In MATLAB column-major: [width x height x picLoad] gives this.
+            % permute([H W P], [2 1 3]) -> [W H P]
+            dataOut = permute(data, [2 1 3]);
 
             rc = obj.driver.seqPut(obj.deviceId, obj.sequenceId, ...
                 int32(picOffset), int32(picLoad), dataOut);
@@ -186,9 +179,19 @@ classdef Sequence < handle
             %   fps — frames per second (e.g. 60)
             C = DMDController.Constants;
             picTime_us = round(1e6 / fps);
+            
             % Query minimum illuminate time
             minIllu = obj.inquire(C.ALP_MIN_ILLUMINATE_TIME);
-            illuTime = max(minIllu, round(picTime_us * 0.9));
+            
+            if obj.bitPlanes == 1
+                % For 1-bit depth, we can use 100% duty cycle to avoid flicker.
+                % ALP-5.0 allows illuminateTime == pictureTime for binary.
+                illuTime = picTime_us;
+            else
+                % For multi-bit, leave 5-10% for bitplane transitions if needed
+                illuTime = max(minIllu, round(picTime_us * 0.95));
+            end
+            
             if illuTime > picTime_us
                 illuTime = picTime_us;
             end
@@ -205,32 +208,41 @@ classdef Sequence < handle
             %   Images are scaled to fit inside [H x W] preserving aspect ratio,
             %   then centered with zero padding. This prevents cropping of
             %   images that are larger than the DMD resolution.
-            if ndims(data) == 2
-                data = reshape(data, size(data,1), size(data,2), 1);
-            end
             [h, w, p] = size(data);
 
             % Scale spatial dimensions to fit [H x W] if needed
             if h ~= H || w ~= W
                 scale = min(H/h, W/w);
-                newH = round(h * scale);
-                newW = round(w * scale);
-                % Scale each frame
-                scaled = zeros(newH, newW, p, 'uint8');
-                for k = 1:p
-                    scaled(:,:,k) = imresize(data(:,:,k), [newH, newW], 'bilinear');
-                end
+                newH = min(H, round(h * scale)); % Ensure we don't exceed canvas
+                newW = min(W, round(w * scale));
+                
+                % Nearest-neighbor scaling (No toolbox required)
+                rIdx = round(linspace(1, h, newH));
+                cIdx = round(linspace(1, w, newW));
+                scaled = data(rIdx, cIdx, :);
+                
                 % Center in [H x W] canvas
                 canvas = zeros(H, W, p, 'uint8');
-                rowOff = floor((H - newH) / 2);
-                colOff = floor((W - newW) / 2);
-                canvas(rowOff+1:rowOff+newH, colOff+1:colOff+newW, :) = scaled;
+                rowOff = floor((double(H) - double(newH)) / 2);
+                colOff = floor((double(W) - double(newW)) / 2);
+                
+                % Safe bounds
+                r1 = max(1, rowOff + 1); r2 = min(H, r1 + newH - 1);
+                c1 = max(1, colOff + 1); c2 = min(W, c1 + newW - 1);
+                
+                canvas(r1:r2, c1:c2, :) = scaled(1:(r2-r1+1), 1:(c2-c1+1), :);
                 data = canvas;
             end
 
             % Crop or pad frames
-            if p > P, data = data(:,:,1:P); end
-            if p < P, data(:,:,P) = 0; end
+            if p > P
+                data = data(:,:,1:P);
+            elseif p < P
+                % Allocate a full zero stack if expanding
+                newData = zeros(H, W, P, 'uint8');
+                newData(:,:,1:p) = data;
+                data = newData;
+            end
         end
 
     end

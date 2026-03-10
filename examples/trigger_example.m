@@ -23,12 +23,12 @@ H = dmd.device.height;
 
 %% Build 4 frames: quadrants lit one at a time
 nFrames = 4;
-fprintf('Building %d-frame quadrant sequence...\n', nFrames);
-imgStack = zeros(H, W, nFrames, 'uint8');
-imgStack(1:H/2,   1:W/2,   1) = 255;  % top-left
-imgStack(1:H/2,   W/2+1:W, 2) = 255;  % top-right
-imgStack(H/2+1:H, 1:W/2,   3) = 255;  % bottom-left
-imgStack(H/2+1:H, W/2+1:W, 4) = 255;  % bottom-right
+fprintf('Building %d-frame quadrant sequence (1-bit)...\n', nFrames);
+imgStack = false(H, W, nFrames);
+imgStack(1:H/2,   1:W/2,   1) = true;  % top-left
+imgStack(1:H/2,   W/2+1:W, 2) = true;  % top-right
+imgStack(H/2+1:H, 1:W/2,   3) = true;  % bottom-left
+imgStack(H/2+1:H, W/2+1:W, 4) = true;  % bottom-right
 
 %% Configure slave mode on the device
 fprintf('Configuring slave (external trigger) mode...\n');
@@ -36,7 +36,7 @@ dmd.device.projControl(C.ALP_PROJ_MODE, C.ALP_SLAVE);
 dmd.device.projControl(C.ALP_TRIGGER_EDGE, C.ALP_EDGE_RISING);
 
 %% Allocate and load sequence directly (low-level for custom timing)
-seq = dmd.device.allocSequence(8, nFrames);
+seq = dmd.device.allocSequence(1, nFrames);
 seq.put(0, nFrames, imgStack);
 seq.setRepeat(1);   % play through once
 

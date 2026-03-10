@@ -22,12 +22,12 @@ fprintf('DMD: %d x %d\n\n', W, H);
 %% Build a 60-frame binary sequence (binary = 1-bit for fastest speed)
 nFrames = 60;
 fprintf('Building %d-frame binary sequence...\n', nFrames);
-imgStack = zeros(H, W, nFrames, 'uint8');
+imgStack = false(H, W, nFrames);
 
 for f = 1:nFrames
     % Alternating vertical stripes moving right
     shift = mod(f-1, 16);
-    stripe = uint8(mod(floor(((1:W) - shift) / 8), 2)) * 255;
+    stripe = mod(floor(((1:W) - shift) / 8), 2) > 0;
     imgStack(:,:,f) = repmat(stripe, H, 1);
 end
 

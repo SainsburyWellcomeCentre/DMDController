@@ -226,6 +226,21 @@ classdef Device < handle
             end
         end
 
+        function ids = getAllSequenceIds(obj)
+            %GETALLSEQUENCEIDS  Retrieve a list of all active sequence IDs on the device.
+            obj.requireDevice();
+            % ALP_PROJ_QUEUE_MAX_AVAIL can be used to guess the range, 
+            % but traditionally ALP IDs are small integers.
+            % We will check the first 128 possible IDs to see which are valid.
+            ids = [];
+            for i = 0:127
+                [rc, ~] = obj.driver.seqInquire(obj.deviceId, uint32(i), DMDController.Constants.ALP_BITPLANES);
+                if rc == DMDController.Constants.ALP_OK
+                    ids(end+1) = i; %#ok<AGROW>
+                end
+            end
+        end
+
         function info = getInfo(obj)
             %GETINFO  Read serial number, version, available memory.
             obj.requireDevice();

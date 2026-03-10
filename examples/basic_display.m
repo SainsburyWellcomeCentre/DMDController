@@ -52,13 +52,13 @@ pause(2);
 fprintf('Test 3: Checkerboard pattern (3 seconds)...\n');
 blockSize = 64;
 [xx, yy] = meshgrid(1:W, 1:H);
-checker = uint8(mod(floor((xx-1)/blockSize) + floor((yy-1)/blockSize), 2)) * 255;
+checker = logical(mod(floor((xx-1)/blockSize) + floor((yy-1)/blockSize), 2));
 dmd.displayFrame(checker);
 pause(3);
 
-%% Test 4: Horizontal gradient
-fprintf('Test 4: Horizontal gradient (3 seconds)...\n');
-gradient_img = uint8(repmat(linspace(0, 255, W), H, 1));
+%% Test 4: Horizontal gradient (Thresholded to 1-bit)
+fprintf('Test 4: Horizontal gradient (1-bit, 3 seconds)...\n');
+gradient_img = repmat(linspace(0, 1, W), H, 1) > 0.5;
 dmd.displayFrame(gradient_img);
 pause(3);
 
@@ -67,21 +67,28 @@ fprintf('Test 5: Concentric rings (3 seconds)...\n');
 cx = W/2; cy = H/2;
 [xx, yy] = meshgrid(1:W, 1:H);
 r = sqrt((xx-cx).^2 + (yy-cy).^2);
-rings = uint8(mod(floor(r / 50), 2) * 255);
+rings = logical(mod(floor(r / 50), 2));
 dmd.displayFrame(rings);
 pause(3);
 
 %% Test 6: Multi-frame sequence (sine wave scrolling) at 30 fps
 fprintf('Test 6: Scrolling sine wave sequence (30 fps, 2 seconds)...\n');
 nFrames = 30;
-imgStack = zeros(H, W, nFrames, 'uint8');
+imgStack = false(H, W, nFrames);
 for f = 1:nFrames
     phase = 2*pi*(f-1)/nFrames;
-    row_profile = uint8(128 + 127 * sin(2*pi*(1:W)/200 + phase));
+    row_profile = (sin(2*pi*(1:W)/200 + phase) > 0);
     imgStack(:,:,f) = repmat(row_profile, H, 1);
 end
 dmd.displaySequence(imgStack, 30, 0);  % 0 = infinite loop
 pause(2);
+
+%% Test 7: 8-bit Grayscale (Horizontal Gradient)
+fprintf('Test 7: 8-bit Grayscale Gradient (3 seconds)...\n');
+gradient8 = uint8(repmat(linspace(0, 255, W), H, 1));
+% Pass '8' as the fourth argument to use 8-bit depth
+dmd.displayFrame(gradient8, [], 8);
+pause(3);
 
 %% Halt and disconnect
 fprintf('\nTest complete. Halting and disconnecting...\n');
