@@ -2,7 +2,7 @@
 
 A clean, self-contained MATLAB package for controlling the **DLP® UltraSpeed V-Module V-7002** via the **ALP-5.0 API** (alp50.dll, header version 28).
 
-> **Author:** HarrisLab-SP and claude-code
+> **Author:** HarrisLab- SP and claude-code
 > **Target device:** ViALUX DLP V-7002 (DLP9000X — 2560 × 1600, 0.90" Type A)
 > **ALP API version:** 5.0
 > **MATLAB:** R2019b or newer (64-bit Windows)
