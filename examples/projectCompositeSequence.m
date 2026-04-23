@@ -100,6 +100,7 @@ function projectCompositeSequence(dmdObject, sequenceEvents, masterFrameRate)
         stackedFrames = cat(3, finalFrameStack{:});
 
         % The displaySequence method expects (imageStack, fps, nRepeat)
+        uploadTic = tic;
         dmdObject.displaySequence(stackedFrames, masterFrameRate, 1); % Play once
         
         uploadTime = toc(uploadTic);
