@@ -15,6 +15,8 @@ DMDController provides a single, intuitive `DMDController.DMD` object that hides
 
 This project was built for the ALP-5.0 SDK, extending and modernising the approach used in earlier ALP-4.2 toolkits. It supports the full ALP-5.0 feature set including 8-bit grayscale, multi-frame sequences, hardware trigger modes, on-the-fly vs pre-loaded sequencing, and device temperature monitoring.
 
+This package is inspired by [ALPTool](https://uk.mathworks.com/matlabcentral/fileexchange/46673-alptool) by Martin Vogel, which provides MATLAB support for ALP 4.3 devices. DMDController ports and extends that approach to the ALP-5.0 API and the ViALUX V-7002 hardware.
+
 ---
 
 ## Requirements
@@ -247,7 +249,7 @@ If `getTemperatures()` returns high values for `apps_fpga`, ensure the V-7002 ha
 
 ## License
 
-This project is intended for lab use. Please contact the author for licensing details.
+BSD 2-Clause. See [LICENSE](LICENSE).
 
 ---
 
