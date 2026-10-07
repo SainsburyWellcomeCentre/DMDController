@@ -226,6 +226,28 @@ classdef Device < handle
             end
         end
 
+        function p = getProgress(obj)
+            %GETPROGRESS  tAlpProjProgress as a struct (AlpProjInquireEx ALP_PROJ_PROGRESS).
+            obj.requireDevice();
+            values = double(obj.driver.projProgress(obj.deviceId));
+            names = {'CurrentQueueId', 'SequenceId', 'nWaitingSequences', ...
+                'nSequenceCounter', 'nSequenceCounterUnderflow', 'nFrameCounter', ...
+                'nPictureTime', 'nFramesPerSubSequence', 'nFlags'};
+            p = cell2struct(num2cell(values(:)), names(:), 1);
+        end
+
+        function n = freeSequences(obj, ids)
+            %FREESEQUENCES  Halt and free the sequences ids (AlpSeqFree); n freed.
+            obj.requireDevice();
+            obj.projHalt();
+            n = 0;
+            for id = ids(:)'
+                if obj.driver.seqFree(obj.deviceId, uint32(id)) == DMDController.Constants.ALP_OK
+                    n = n + 1;
+                end
+            end
+        end
+
         function ids = getAllSequenceIds(obj)
             %GETALLSEQUENCEIDS  Retrieve a list of all active sequence IDs on the device.
             obj.requireDevice();

@@ -71,10 +71,15 @@ classdef DMD < handle
             %
             %   dmd = DMDController.DMD(dllPath)
             %     Override the DLL path (string).
+            %
+            %   dmd = DMDController.DMD(DMDController.SimulatedDriver())
+            %     No hardware: the simulated device (tests, the GUI offline).
             if nargin < 1
                 dllPath = [];
             end
-            if isempty(dllPath)
+            if isobject(dllPath)
+                obj.driver = dllPath;  % a driver already made, e.g. SimulatedDriver
+            elseif isempty(dllPath)
                 obj.driver = DMDController.Driver();
             else
                 obj.driver = DMDController.Driver(dllPath);
@@ -106,7 +111,13 @@ classdef DMD < handle
             %     • An internal 1-frame sequence buffer is pre-allocated
             %     • dmd.device.width / dmd.device.height are populated
             %
-            %   Throws if device not found (ALP_NOT_ONLINE) or already open.
+            %   Throws if device not found (ALP_NOT_ONLINE).
+            %   Already connected: does nothing, so a DMD shared by several
+            %   users (a panel and a script) is not re-opened under their
+            %   sequences. disconnect() first to open another device.
+            if ~isempty(obj.device.deviceId)
+                return
+            end
             if nargin < 2, deviceNum = 0; end
             obj.device.alloc(deviceNum);
 
@@ -423,6 +434,31 @@ classdef DMD < handle
             % • The DLP9000X at 480 MHz requires active cooling; monitor this
             %   value before and during long high-speed runs.
             temps = obj.device.getTemperatures();
+        end
+
+        function p = getProgress(obj)
+            %GETPROGRESS  Where the projection is (AlpProjInquireEx ALP_PROJ_PROGRESS).
+            %
+            %   p = dmd.getProgress()
+            %
+            % RETURNS a struct: CurrentQueueId, SequenceId, nWaitingSequences,
+            % nSequenceCounter, nSequenceCounterUnderflow, nFrameCounter,
+            % nPictureTime, nFramesPerSubSequence, nFlags. In SLAVE mode
+            % nFrameCounter goes up by one per trigger (examples/trigger_toggle.m).
+            p = obj.device.getProgress();
+        end
+
+        function n = freeAllSequences(obj)
+            %FREEALLSEQUENCES  Halt and free every sequence on the device.
+            %
+            %   n = dmd.freeAllSequences()   — n sequences freed
+            %
+            %   Frees the internal one (as clear() does) and any other that is
+            %   still allocated (getAllSequenceIds), e.g. left by a script whose
+            %   Sequence objects were lost. Sequence objects still held go stale.
+            obj.requireConnected();
+            obj.clear();
+            n = obj.device.freeSequences(obj.device.getAllSequenceIds());
         end
 
         function info = getInfo(obj)

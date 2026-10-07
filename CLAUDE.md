@@ -357,8 +357,12 @@ The V-7002 supports `ALP_DMD_POWER_FLOAT` to release mirrors to flat position. C
 ### Temperature monitoring
 The V-7002 / DLP9000X at 480 MHz requires active temperature control. The lab should implement a polling check (or at least expose `getTemperatures()`) and warn if `ALP_APPS_FPGA_TEMPERATURE` exceeds `ALP_MAX_APPS_FPGA_TEMPERATURE`.
 
-### No GUI planned
-Unlike ALPTool (which has `alptool.fig`), DMDController will be a pure programmatic API. A GUI can be added later.
+### GUI (added 2026-10-06)
+`DMDController.app` / `DMDController.gui.DMDApp`: a programmatic uifigure panel, laid out like the
+lab's OBIS laser, Hamamatsu camera and Zaber stage panels and embeddable in another GUI
+(`'Parent'`). See `docs/gui.md`. It runs on `DMDController.SimulatedDriver` for tests
+(`tests/run_tests.m`, 44 tests, no DLL), which stands in for `Driver` (same methods and
+return codes; refuses a synch pulse as long as the picture time, as the rig's ALP does).
 
 ### No thunk source is shipped with ALP-5.0
 Unlike the old project which included the pre-compiled `alpV42_thunk_pcwin64.dll`, the user must compile a new thunk using their local MATLAB + C compiler. Document this in a `README.md` (or a `setup.m` script).
@@ -400,7 +404,7 @@ Items below are **not yet implemented** and represent potential extensions for l
 - [ ] `setSynchOutGate(outN, gateStruct)` — `AlpDevControlEx` with `tAlpDynSynchOutGate`
 - [ ] `resetQueue()` — `ALP_PROJ_RESET_QUEUE` for queue-mode
 - [ ] `abortSequence(queueId)` / `abortFrame(queueId)` — Fine-grained abort
-- [ ] `getProgress()` — `AlpProjInquireEx(ALP_PROJ_PROGRESS)` returning parsed `tAlpProjProgress`
+- [x] `getProgress()` — `AlpProjInquireEx(ALP_PROJ_PROGRESS)` returning parsed `tAlpProjProgress` (`Driver.projProgress`, 2026-10-06)
 - [ ] Queue mode enable/disable — `ALP_PROJ_QUEUE_MODE` / `ALP_PROJ_SEQUENCE_QUEUE`
 
 ### 14c. Advanced projection features
@@ -413,10 +417,11 @@ Items below are **not yet implemented** and represent potential extensions for l
 - [ ] Temperature watchdog — background timer calling `getTemperatures()`, warning/halting if over threshold
 - [ ] Multi-device support — `DMD(deviceNum)` selecting from multiple connected V-modules
 - [ ] `startup.m` / `addpath` helper so users don't need to manually manage path
-- [ ] Unit tests (mock / pseudo-DLL mode) for CI without hardware
+- [x] Unit tests (mock / pseudo-DLL mode) for CI without hardware: `SimulatedDriver`, `tests/` (2026-10-06)
 - [ ] Optional verbose logging (replaces ALPTool `logger.m` pattern if needed)
 
 ### 14e. Already implemented (moved from future scope)
+- [x] Control panel `DMDController.app` (`+gui/DMDApp.m`), test patterns `DMDController.patterns`, file frames `DMDController.loadFrames` (images, stacks, spot lists), `Sequence.setTimingWithSynch` (longest synch pulse, from LuminoseHF's `setFrameTiming`), `DMD.freeAllSequences`, `DMD(SimulatedDriver)` (2026-10-06)
 - [x] `DMD.clear()` — halt + free current sequence memory without disconnecting device
 - [x] `DMD.displayFrame()` extended — accepts filename string, auto-converts RGB to grayscale, `bitDepth` argument (1–8)
 - [x] `Device.getAllSequenceIds()` — scans IDs 0–127 to enumerate live sequences

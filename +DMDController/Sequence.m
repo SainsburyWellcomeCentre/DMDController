@@ -174,6 +174,32 @@ classdef Sequence < handle
             obj.control(DMDController.Constants.ALP_SEQ_DMD_LINES, val);
         end
 
+        function synchWidth = setTimingWithSynch(obj, t)
+            %SETTIMINGWITHSYNCH  Frame time t (us) with the longest synch pulse accepted.
+            %
+            %   w = seq.setTimingWithSynch(t)
+            %
+            %   Illumination and picture time t. The frame-synch output (pin 8)
+            %   can gate a light source, so its pulse should span the frame, but
+            %   AlpSeqTiming refuses (ALP_PARM_INVALID) a pulse as long as the
+            %   picture time. Widths just under t are tried in turn; the first
+            %   accepted is left set and returned; 0 (the ALP default, a short
+            %   pulse) is the last resort, and a t refused even then errors.
+            t = round(t);
+            candidates = round([t-1, t-10, t-100, t-1000, 0.99*t, 0.9*t, 0.5*t]);
+            for w = [unique(candidates(candidates > 0), 'stable'), 0]
+                try
+                    obj.timing(t, t, 0, w, 0);
+                    synchWidth = w;
+                    return
+                catch
+                    % refused: try a shorter pulse
+                end
+            end
+            obj.timing(t, t, 0, 0, 0);  % rethrows the ALP's own error
+            synchWidth = 0;
+        end
+
         function setTimingFromFPS(obj, fps)
             %SETTIMINGFROMFPS  Configure timing for the given frame rate.
             %   fps — frames per second (e.g. 60)

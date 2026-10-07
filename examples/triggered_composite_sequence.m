@@ -79,30 +79,31 @@ try
     % Active state duration (100ms) - ensures MATLAB catches the pulse
     seq.timing(100000, 100000, 0, 0, 0);
 
-    % Configure for external trigger (Matching trigger_toggle.m)
+    % Configure for external trigger
     dmd.device.projControl(C.ALP_PROJ_MODE, C.ALP_SLAVE);
-    dmd.device.control(C.ALP_TRIGGER_EDGE, C.ALP_EDGE_FALLING);
+    dmd.device.control(C.ALP_TRIGGER_EDGE, C.ALP_EDGE_RISING);
 
     % Start once. Hardware handles the rest.
     dmd.device.projStartCont(seq);
-    pause(0.15);  % let the initial startup frame (100 ms) expire before watching
 
-    fprintf('Ready. Waiting for triggers on Pin 7 (Falling Edge)...\n');
-
-    currentInterval = 0;
-    lastPS = double(C.ALP_PROJ_IDLE);
-
+    fprintf('Ready. Waiting for triggers on Pin 7 (Rising Edge)...\n');
     fprintf('Press Ctrl+C to stop.\n');
-    while true
-        ps = double(dmd.device.projInquire(C.ALP_PROJ_STATE));
 
-        % Detect IDLE -> ACTIVE transition (trigger received)
-        if ps == double(C.ALP_PROJ_ACTIVE) && lastPS == double(C.ALP_PROJ_IDLE)
+    % ALP_PROJ_STATE stays ACTIVE throughout SLAVE mode in ALP-5.0.
+    % Detect trigger events via nFrameCounter (field 6 of tAlpProjProgress).
+    progress = libpointer('uint32Ptr', zeros(1, 9, 'uint32'));
+    dmd.device.projInquireEx(C.ALP_PROJ_PROGRESS, progress);
+    lastFC = double(progress.Value(6));
+    currentInterval = 0;
+
+    while true
+        dmd.device.projInquireEx(C.ALP_PROJ_PROGRESS, progress);
+        fc = double(progress.Value(6));
+        if fc ~= lastFC
             currentInterval = mod(currentInterval, numIntervals) + 1;
             fprintf('[TRIGGER] -> Interval %d/%d\n', currentInterval, numIntervals);
+            lastFC = fc;
         end
-
-        lastPS = ps;
         pause(0.01);
     end
 

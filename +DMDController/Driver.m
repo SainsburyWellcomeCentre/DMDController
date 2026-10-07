@@ -215,6 +215,17 @@ classdef Driver < handle
             value = varPtr.Value;
         end
 
+        function values = projProgress(obj, deviceId)
+            %PROJPROGRESS  AlpProjInquireEx(ALP_PROJ_PROGRESS): tAlpProjProgress as 9 uint32.
+            %   A uint32Ptr is passed (the struct is 9 packed ulongs), as
+            %   examples/trigger_toggle.m does; field 6 is nFrameCounter.
+            progress = libpointer('uint32Ptr', zeros(1, 9, 'uint32'));
+            rc = calllib(obj.libalias, 'AlpProjInquireEx', uint32(deviceId), ...
+                int32(DMDController.Constants.ALP_PROJ_PROGRESS), progress);
+            DMDController.Driver.checkRC(rc, 'AlpProjInquireEx');
+            values = progress.Value;
+        end
+
         function rc = projInquireEx(obj, deviceId, inquireType, userStructPtr)
             %PROJINQUIREEX  AlpProjInquireEx — query projection parameter via struct.
             rc = calllib(obj.libalias, 'AlpProjInquireEx', uint32(deviceId), int32(inquireType), userStructPtr);

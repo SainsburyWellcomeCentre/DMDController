@@ -103,6 +103,24 @@ dmd.disconnect();    % full teardown
 
 ---
 
+## Control Panel
+
+```matlab
+DMDController.app()                                        % the DMD (Connect opens it)
+DMDController.app('Driver', DMDController.SimulatedDriver())   % no hardware: simulated
+DMDController.app(dmd)                                     % a DMD you already connected
+DMDController.app(dmd, 'Parent', tab)                      % inside your own window
+```
+
+Test patterns (checkerboards, crosshair, dot, rings and cross, dot grid, stripes, an 8-bit
+gradient, scrolling stripes) with their size; images, stacks and spot lists from files; frame
+time, bit depth, repeat, an external (TTL) trigger with a trigger counter, a long synch pulse to
+gate a light source, invert and flips; **Halt** (Esc). Under **Details**: temperatures, memory and
+**Free all**, the `examples/` scripts (open or run), and a log. See [docs/gui.md](docs/gui.md).
+
+The tests (`tests/run_tests.m`) run everything on `DMDController.SimulatedDriver`, without the
+DLL or the device.
+
 ## API Reference
 
 ### `DMDController.DMD` — Main Class
