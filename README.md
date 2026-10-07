@@ -1,5 +1,7 @@
 # DMDController
 
+[![View DMDController on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://uk.mathworks.com/matlabcentral/fileexchange/183769-dmdcontroller)
+
 A clean, self-contained MATLAB package for controlling the **DLP® UltraSpeed V-Module V-7002** via the **ALP-5.0 API** (alp50.dll, header version 28).
 
 > **Author:** HarrisLab- SP and claude-code
