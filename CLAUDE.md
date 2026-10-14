@@ -361,7 +361,7 @@ The V-7002 / DLP9000X at 480 MHz requires active temperature control. The lab sh
 `DMDController.app` / `DMDController.gui.DMDApp`: a programmatic uifigure panel, laid out like the
 lab's OBIS laser, Hamamatsu camera and Zaber stage panels and embeddable in another GUI
 (`'Parent'`). See `docs/gui.md`. It runs on `DMDController.SimulatedDriver` for tests
-(`tests/run_tests.m`, 44 tests, no DLL), which stands in for `Driver` (same methods and
+(`tests/run_tests.m`, 48 tests, no DLL), which stands in for `Driver` (same methods and
 return codes; refuses a synch pulse as long as the picture time, as the rig's ALP does).
 
 ### No thunk source is shipped with ALP-5.0

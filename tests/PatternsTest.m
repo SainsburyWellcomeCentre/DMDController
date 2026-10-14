@@ -23,6 +23,12 @@ classdef PatternsTest < matlab.unittest.TestCase
             tc.verifyEqual(nnz(frames), nnz(hypot(-10:10, (-10:10)') <= 10));
         end
 
+        function singlePixelIsOneMirrorAtTheCentre(tc)
+            frames = DMDController.patterns('Single pixel', 1024, 768, 50);  % size ignored
+            tc.verifyEqual(nnz(frames), 1);
+            tc.verifyTrue(frames(384, 512));
+        end
+
         function eachPatternHasItsDefaultSize(tc)
             defaults = {'Checkerboard', 64; 'Crosshair', 8; 'Dot', 100; ...
                 'Rings and cross', 50; 'Dot grid', 100; 'Stripes', 200};

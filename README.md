@@ -114,7 +114,7 @@ DMDController.app(dmd)                                     % a DMD you already c
 DMDController.app(dmd, 'Parent', tab)                      % inside your own window
 ```
 
-Test patterns (checkerboards, crosshair, dot, rings and cross, dot grid, stripes, an 8-bit
+Test patterns (checkerboards, crosshair, dot, single pixel, rings and cross, dot grid, stripes, an 8-bit
 gradient, scrolling stripes) with their size; images, stacks and spot lists from files; frame
 time, bit depth, repeat, an external (TTL) trigger with a trigger counter, a long synch pulse to
 gate a light source, invert and flips; **Halt** (Esc). Under **Details**: temperatures, memory and
@@ -132,6 +132,7 @@ DLL or the device.
 |---|---|
 | `dmd = DMDController.DMD()` | Create object (does not connect) |
 | `dmd = DMDController.DMD(dllPath)` | Override DLL path |
+| `dmd = DMDController.DMD.connectedInstance()` | The DMD object already connected in this MATLAB, or `[]`. The device has one holder: a second object's `connect()` is refused, and `DMDController.app()` attaches to this one instead (closing that panel leaves it connected) |
 | `dmd.connect()` | Connect to device 0 |
 | `dmd.connect(deviceNum)` | Connect to a specific device number |
 | `dmd.disconnect()` | Halt, free all sequences, release device |

@@ -33,6 +33,7 @@ classdef SimulatedDriver < handle
     % See also: DMDController.Driver, DMDController.DMD
 
     properties
+        Exclusive = false  % true: stands for the one real device (DMD.connectedInstance tests)
         Width = 2560
         Height = 1600
         Online = true

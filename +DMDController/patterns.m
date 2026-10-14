@@ -14,6 +14,7 @@ function [frames, bitDepth] = patterns(name, W, H, sizePx)
 %   'Fine checkerboard'  every other mirror on (sizePx unused)
 %   'Crosshair'          single-pixel lines through the centre, and sizePx (8) either side
 %   'Dot'                a disc of radius sizePx (100) at the centre
+%   'Single pixel'       one mirror on, at the centre (sizePx unused): focus and alignment
 %   'Rings and cross'    rings sizePx (50) wide, and a cross of arms sizePx wide
 %   'Dot grid'           single-pixel dots every sizePx (100)
 %   'Stripes'            vertical stripes, period sizePx (200)
@@ -23,7 +24,7 @@ function [frames, bitDepth] = patterns(name, W, H, sizePx)
 % See also: DMDController.gui.DMDApp, DMDController.loadFrames
 
     names = {'All on', 'All off', 'Checkerboard', 'Fine checkerboard', 'Crosshair', ...
-        'Dot', 'Rings and cross', 'Dot grid', 'Stripes', 'Gradient (8-bit)', ...
+        'Dot', 'Single pixel', 'Rings and cross', 'Dot grid', 'Stripes', 'Gradient (8-bit)', ...
         'Scrolling stripes'};
     if nargin == 0
         frames = names;
@@ -63,6 +64,9 @@ function [frames, bitDepth] = patterns(name, W, H, sizePx)
             end
         case 'Dot'
             frames = (xx - cx).^2 + (yy - cy).^2 <= sizePx^2;
+        case 'Single pixel'
+            frames = false(H, W);
+            frames(cy, cx) = true;
         case 'Rings and cross'
             r = sqrt((xx - cx).^2 + (yy - cy).^2);
             frames = logical(mod(floor(r / sizePx), 2));

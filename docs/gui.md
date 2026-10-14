@@ -2,6 +2,8 @@
 
 ```matlab
 DMDController.app()                                    % owns a DMD; Connect loads the DLL and opens it
+                                                       % (or attaches to the DMD already connected in
+                                                       % this MATLAB, e.g. LuminoseHF's: one holder only)
 DMDController.app('Driver', DMDController.SimulatedDriver())   % owns a DMD on the simulated device
 DMDController.app(dmd)                                 % attached: never disconnects it
 DMDController.app(dmd, 'Parent', tab)                  % inside another GUI's figure, panel, tab or grid
@@ -45,6 +47,10 @@ Each Project replaces the panel's one sequence on the device (it halts, frees th
 the panel's previous one, then allocates the new one), so projecting again does not fill the
 memory. Errors (no device, a frame time the DMD refuses) go in the log and an alert, never thrown
 out of a callback.
+
+## View only (lock)
+
+`app.lock(reason)` makes the panel view only for a host whose own code drives the DMD (LuminoseHF locks it while a session runs): the controls that would change it are disabled and the state reads *(view only: reason)*; the status, preview and details stay. `app.unlock()` gives them back; `LockReason` holds the reason ('' when unlocked). Scripts calling the DMD object directly are not affected.
 
 ## Testing
 

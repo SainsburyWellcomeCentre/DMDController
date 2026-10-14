@@ -33,12 +33,17 @@ classdef DMDApp < handle
     %   DMD, OwnsDMD, Figure, Root, Controls, LastError
     %   Frames       what was projected last (H x W or H x W x N), or []
     %   Projecting   whether a projection runs; Triggers counted in external mode
+    %   LockReason   why the panel is view only (lock), or ''
     %
     % METHODS
     %   refresh(), connect(), disconnect()
     %   project(frames, bitDepth)   project frames with the panel's projection settings
     %   projectPattern(name, sizePx), loadFile(file), projectFile()
     %   halt(), readStatus(), freeAll(), showDetails(tf), close()
+    %   lock(reason)  view only, for a host whose own code drives the DMD (a running
+    %                 session): Connect, the projections, All on/off, Halt, Free all and
+    %                 Run example are disabled and the state says why; the status and
+    %                 preview stay. unlock() gives them back
     %
     % See also: DMDController.app, DMDController.DMD, DMDController.patterns,
     %           DMDController.loadFrames, DMDController.SimulatedDriver
@@ -55,6 +60,7 @@ classdef DMDApp < handle
         Triggers = 0
         FileFrames = []       % frames of the file loaded
         FileName = ''
+        LockReason = ''       % why the panel is view only, or ''
     end
 
     properties (Constant, Hidden)
@@ -113,6 +119,11 @@ classdef DMDApp < handle
             if isempty(showLog)
                 showLog = isempty(parent);
             end
+            if isempty(obj.DMD) && isempty(driver)
+                % The DMD already connected in this MATLAB (e.g. LuminoseHF's): the device
+                % has one holder, so a second object could never connect
+                obj.DMD = DMDController.DMD.connectedInstance();
+            end
             if isempty(obj.DMD)
                 obj.OwnsDMD = true;
                 if ~isempty(driver)
@@ -169,6 +180,19 @@ classdef DMDApp < handle
             end
         end
 
+        function lock(obj, reason)
+            % lock(reason) makes the panel view only (a host's own code drives the DMD).
+            if nargin < 2 || isempty(reason), reason = 'locked'; end
+            obj.LockReason = char(reason);
+            obj.refresh();
+        end
+
+        function unlock(obj)
+            % unlock() gives the controls back.
+            obj.LockReason = '';
+            obj.refresh();
+        end
+
         function refresh(obj)
             % refresh() redraws the controls (no traffic).
             if obj.Closing || isempty(obj.Root) || ~isvalid(obj.Root)
@@ -214,12 +238,28 @@ classdef DMDApp < handle
             c.Halt.Enable = ready;
             c.RunExample.Enable = ~isempty(c.Example.Items) && ~isempty(c.Example.Value);
             c.OpenExample.Enable = c.RunExample.Enable;
+            c.Connect.Enable = true;  % back after unlock
+            if ~isempty(obj.LockReason)  % view only: nothing here may change the DMD
+                for name = {'Connect', 'ProjectPattern', 'ProjectFile', 'AllOn', 'AllOff', ...
+                        'Halt', 'FreeAll', 'RunExample'}
+                    c.(name{1}).Enable = false;
+                end
+                c.State.Text = sprintf('%s (view only: %s)', c.State.Text, obj.LockReason);
+            end
             obj.showLog();
         end
 
         function connect(obj)
             % connect() opens the device (DeviceNumber) and reads what it is.
             if isempty(obj.DMD)
+                other = DMDController.DMD.connectedInstance();
+                if ~isempty(other)  % connected since the panel opened: use it, never own it
+                    obj.DMD = other;
+                    obj.OwnsDMD = false;
+                    obj.note('using the DMD already connected in this MATLAB');
+                    obj.readStatus();
+                    return
+                end
                 obj.DMD = DMDController.DMD();  % loads the ALP-5.0 DLL
             end
             obj.DMD.connect(obj.DeviceNumber);

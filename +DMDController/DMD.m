@@ -119,7 +119,25 @@ classdef DMD < handle
                 return
             end
             if nargin < 2, deviceNum = 0; end
-            obj.device.alloc(deviceNum);
+            other = DMDController.DMD.connectedInstance();
+            if obj.isExclusive() && ~isempty(other) && other ~= obj
+                error('DMDController:DMD:inUse', ['Another DMDController.DMD in this ' ...
+                    'MATLAB already holds the DMD. Use that one (DMDController.DMD.' ...
+                    'connectedInstance(); DMDController.app() attaches to it) or disconnect it.']);
+            end
+            try
+                obj.device.alloc(deviceNum);
+            catch err
+                if contains(err.message, {'ALP_NOT_AVAILABLE', 'ALP_NOT_ONLINE'})
+                    error('DMDController:Driver:alpError', ['%s\nThe DMD is held by another ' ...
+                        'program or MATLAB (close the other MATLAB, or ALP demo software), or ' ...
+                        'it is off or unplugged.'], err.message);
+                end
+                rethrow(err);
+            end
+            if obj.isExclusive()
+                DMDController.DMD.registry('add', obj);
+            end
 
             % Pre-allocate a 1-frame 8-bit sequence used by displayFrame.
             % This is freed and re-allocated inside displayFrame as needed.
@@ -140,6 +158,7 @@ classdef DMD < handle
                 obj.p_seq = [];
             end
             obj.device.free();
+            DMDController.DMD.registry('remove', obj);
         end
 
         % ----------------------------------------------------------------
@@ -251,7 +270,7 @@ classdef DMD < handle
             if nargin < 3 || isempty(fps),      fps      = 30; end
 
             % Support 2-D single-frame input
-            if ndims(imageStack) == 2
+            if ismatrix(imageStack)
                 nFrames = 1;
             else
                 nFrames = size(imageStack, 3);
@@ -558,4 +577,43 @@ classdef DMD < handle
 
     end
 
+
+    methods (Access = private)
+        function tf = isExclusive(obj)
+            % The real ALP device (one holder at a time), or a simulated one standing for it.
+            tf = isa(obj.driver, 'DMDController.Driver') || ...
+                (isa(obj.driver, 'DMDController.SimulatedDriver') && obj.driver.Exclusive);
+        end
+    end
+
+    methods (Static)
+        function d = connectedInstance()
+            %CONNECTEDINSTANCE  The DMD object connected in this MATLAB, or [].
+            %   The ALP device can be held by one object only: a second connect()
+            %   would fail, so a panel or script opened later uses this one.
+            d = DMDController.DMD.registry('get');
+        end
+    end
+
+    methods (Static, Access = private)
+        function d = registry(action, obj)
+            % Weak references to the connected DMDs (never keeps one alive).
+            persistent refs
+            if isempty(refs), refs = {}; end
+            keep = cellfun(@(r) ~isempty(r.Handle) && isvalid(r.Handle) ...
+                && ~isempty(r.Handle.device) && ~isempty(r.Handle.device.deviceId), refs);
+            refs = refs(keep);
+            d = [];
+            switch action
+                case 'add'
+                    refs{end + 1} = matlab.lang.WeakReference(obj);
+                case 'remove'
+                    refs = refs(cellfun(@(r) r.Handle ~= obj, refs));
+                case 'get'
+                    if ~isempty(refs)
+                        d = refs{1}.Handle;
+                    end
+            end
+        end
+    end
 end

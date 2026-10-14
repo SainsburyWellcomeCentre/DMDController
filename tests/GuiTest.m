@@ -19,6 +19,21 @@ classdef GuiTest < matlab.unittest.TestCase
 
     methods (Test)
 
+        function aLockedPanelIsViewOnly(tc)
+            tc.App.connect();
+            app = tc.App;
+            app.lock('session running');
+            off = matlab.lang.OnOffSwitchState('off');
+            for name = {'Connect', 'ProjectPattern', 'AllOn', 'AllOff', 'Halt', 'FreeAll', 'RunExample'}
+                tc.verifyEqual(app.Controls.(name{1}).Enable, off, name{1});
+            end
+            tc.verifySubstring(app.Controls.State.Text, 'view only: session running');
+            app.unlock();
+            tc.verifyEqual(app.Controls.Connect.Enable, matlab.lang.OnOffSwitchState('on'));
+            tc.verifyEqual(app.Controls.AllOn.Enable, matlab.lang.OnOffSwitchState('on'));
+            tc.verifyEmpty(app.LockReason);
+        end
+
         function windowStaysOnTheScreen(tc)
             screen = get(groot, 'ScreenSize');
             app = tc.App;

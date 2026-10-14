@@ -16,6 +16,33 @@ classdef SimulatedDMDTest < matlab.unittest.TestCase
     end
 
     methods (Test)
+        function theDeviceHasOneHolder(tc)
+            % A second object cannot take the device; the first is found and used.
+            first = DMDController.DMD(DMDController.SimulatedDriver('Exclusive', true));
+            tc.addTeardown(@() delete(first));
+            first.connect();
+            tc.verifyEqual(DMDController.DMD.connectedInstance(), first);
+            second = DMDController.DMD(DMDController.SimulatedDriver('Exclusive', true));
+            tc.addTeardown(@() delete(second));
+            tc.verifyError(@() second.connect(), 'DMDController:DMD:inUse');
+            first.disconnect();
+            tc.verifyEmpty(DMDController.DMD.connectedInstance());
+            second.connect();
+            tc.verifyEqual(DMDController.DMD.connectedInstance(), second);
+        end
+
+        function aPanelOpenedLaterUsesTheConnectedDmd(tc)
+            dmd = DMDController.DMD(DMDController.SimulatedDriver('Exclusive', true));
+            tc.addTeardown(@() delete(dmd));
+            dmd.connect();
+            app = DMDController.gui.DMDApp('Visible', false);
+            tc.addTeardown(@() app.close());
+            tc.verifyEqual(app.DMD, dmd);
+            tc.verifyFalse(app.OwnsDMD);  % closing the panel leaves it connected
+            app.close();
+            tc.verifyNotEmpty(dmd.device.deviceId);
+        end
+
         function connectReadsTheSize(tc)
             tc.verifyEqual(double(tc.DMD.device.width), 64);
             tc.verifyEqual(double(tc.DMD.device.height), 40);
